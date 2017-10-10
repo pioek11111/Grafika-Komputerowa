@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="">
+	<head>
+		<meta charset="utf-8">
+		<title>Tennis Game</title>
+
+		<style>
+			body {
+				margin: 0; 
+				padding: 0;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				height: 100vh;
+				background-color: darkgray;
+			}
+			canvas {
+				border: 3px solid black;
+			}
+			button {
+				left: 50px;
+				top: 20px;
+				height: 25px;
+
+			}
+		</style>
+	</head>
+
+	<body>
+		<button></button>
+		<canvas></canvas>	
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+		<script src="drawLine.js"></script>
+		<script>
+			const canvas = document.querySelector('canvas');
+			const ctx = canvas.getContext('2d');
+			canvas.width = 1000;
+			canvas.height = 500;
+			const cw = canvas.width;
+			const ch = canvas.height;
+			const topCanvas = canvas.offsetTop;
+			const leftCanvas = canvas.offsetLeft;
+			ctx.fillStyle = 'white';
+			ctx.fillRect(0,0,cw,ch);
+			var circles = [], drag = false, mouseX, mouseY, dragHoldX, dragHoldY;;
+			const pointRadius = 10;
+			var endDrowing = false;
+			
+			$(canvas).on("click", function(e) {
+				var i, len = circles.length;
+				var notOnLine = true;
+				var x = e.pageX-leftCanvas, y = e.pageY-topCanvas;
+				var inE = false;
+				
+				if (len > 0 && inCircle(circles[0], x, y)) {	
+					endDrowing = true;
+					$("button").trigger("click");
+					drawPolygon();
+					return;
+				}
+				
+				for(i=0;i<len-1;i++) { // TODO: zmienić gdy domknięty
+					if (inEdge(circles[i].x, circles[i].y, circles[i+1].x, circles[i+1].y, x, y)) {
+						x = (circles[i].x + circles[i+1].x) / 2;
+						y = (circles[i].y + circles[i+1].y) / 2;
+						inE = true;
+						break;
+					}					
+				}
+				
+				console.log(e.pageX + " " + e.pageY)
+				ctx.fillStyle = "black";
+				ctx.beginPath();
+				ctx.arc(x, y, 10, 0, 2*Math.PI);
+				ctx.stroke();
+				ctx.fill();
+				var color = "rgb(" + 0 + "," + 0 + "," + 0 +")";
+				if (inE) {
+					circles.splice(i + 1, 0, {x:x,y:y, r:pointRadius, color:color})
+				} else {
+					circles.push({x:x,y:y, r:pointRadius, color:color});
+				}
+				
+				drawPolygon();
+			})
+
+			$("button").on("click", function(e) {
+				$(canvas).prop('onclick',null).off('click');
+				canvas.addEventListener("mousedown", mouseDown, false);
+				console.log(circles);
+			})
+
+			function drawPolygon() {
+				var n = circles.length;
+
+				for (var i = 0; i < n - 1; i++) {
+					MidpointLine(circles[i].x, circles[i].y, circles[i+1].x, circles[i+1].y);
+				}
+				
+				if(endDrowing) {
+					MidpointLine(circles[0].x, circles[0].y, circles[n-1].x, circles[n-1].y);
+				}
+			}
+
+			function drawCircles() {
+				var i, len = circles.length;
+				for(i=0;i<len;i++) {
+					ctx.fillStyle = circles[i].color;
+					ctx.beginPath();
+					ctx.arc(circles[i].x, circles[i].y, circles[i].r, 0, 2*Math.PI, false);
+					ctx.fill();
+				}
+			}
+			//drawCircles();
+
+			function mouseDown(e)
+			{
+				var i, len = circles.length;
+				var bRect = canvas.getBoundingClientRect();
+				mouseX = (e.clientX - bRect.left);
+				mouseY = (e.clientY - bRect.top);
+				for (i=0; i < len; i++) {
+					if(inCircle(circles[i], mouseX, mouseY)) 
+					{
+						console.log(i);
+						drag = true;
+						dragHoldX = mouseX - circles[i].x;
+						dragHoldY = mouseY - circles[i].y;
+						dragIndex = i;
+					}
+				}
+				if (drag) 
+				{
+					window.addEventListener("mousemove", mouseMove, false);
+				}
+				canvas.removeEventListener("mousedown", mouseDown, false);
+				window.addEventListener("mouseup", mouseUp, false);
+				return false;		
+			}
+
+			function mouseMove(e)
+			{
+				var posX, posY;
+				var radius = circles[dragIndex].r;
+				var minX = radius;
+				var maxX = canvas.width - radius;
+				var minY = radius;
+				var maxY = canvas.height - radius;
+
+				var bRect = canvas.getBoundingClientRect();
+				mouseX = (e.clientX - bRect.left);
+				mouseY = (e.clientY - bRect.top);
+
+				posX = mouseX - dragHoldX;
+				posX = (posX < minX) ? minX : ((posX > maxX) ? maxX : posX);
+				posY = mouseY - dragHoldY;
+				posY = (posY < minY) ? minY : ((posY > maxY) ? maxY : posY);
+
+				circles[dragIndex].x = posX;
+				circles[dragIndex].y = posY;
+
+				ctx.fillStyle = 'white';
+				ctx.fillRect(0,0,cw,ch);
+				drawCircles();
+				drawPolygon();
+			}
+
+			function drawCanvas() {
+				ctx.fillStyle = 'white';
+				ctx.fillRect(0,0,cw,ch);
+				drawCircles();
+				drawPolygon();
+			}
+
+			function mouseUp()
+			{
+				canvas.addEventListener("mousedown", mouseDown, false);
+				window.removeEventListener("mouseup", mouseUp, false);
+				if (drag) 
+				{
+					drag = false;
+					window.removeEventListener("mousemove", mouseMove, false);
+				}
+			}		
+
+			function inCircle(circle,mx,my) {
+				if (Math.abs(circle.x - mx) <= pointRadius && Math.abs(circle.y - my) <= pointRadius) {
+					return true;
+				} else {
+					return false;
+				}
+			}
+			
+			function inEdge(x1, y1, x2, y2, x3, y3) {
+				console.log("in Edge function")
+				var a = (y1 - y2) / (x1 - x2);
+				var b = y1 - a * x1;
+				if (x3 < Math.max(x1, x2) && x3 > Math.min(x1, x2) && y3 < Math.max(y1, y2) && 
+					y3 > Math.min(y1, y2) && Math.abs(y3 - a * x3 - b) <= pointRadius) {
+					return true;
+				} else {
+					return false;
+				}
+			}
+			
+			$( "canvas" ).contextmenu(function(e) {
+				console.log(e.pageX + " " + e.pageY);
+				var i, len = circles.length;
+				var bRect = canvas.getBoundingClientRect();
+				mouseX = (e.clientX - bRect.left);
+				mouseY = (e.clientY - bRect.top);
+				for (i=0; i < len; i++) {
+					if(inCircle(circles[i], mouseX, mouseY)) 
+					{						
+						circles.splice(i, 1);
+						drawCanvas();
+						break;
+					}
+				}
+			});
+
+			$("canvas").bind("contextmenu", function(e) {
+				return false;
+			});
+		</script>
+	</body>
+</html>
