@@ -23,14 +23,58 @@
 				height: 25px;
 
 			}
+			
+			.custom-menu {
+				display: none;
+				z-index: 1000;
+				position: absolute;
+				overflow: hidden;
+				border: 1px solid #CCC;
+				white-space: nowrap;
+				font-family: sans-serif;
+				background: #FFF;
+				color: #333;
+				border-radius: 5px;
+				padding: 0;
+			}
+
+			/* Each of the items in the list */
+			.custom-menu li {
+				padding: 8px 12px;
+				cursor: pointer;
+				list-style-type: none;
+				transition: all .3s ease;
+				user-select: none;
+			}
+
+			.custom-menu li:hover {
+				background-color: #DEF;
+			}
 		</style>
 	</head>
 
 	<body>
 		<button></button>
-		<canvas></canvas>	
+		<canvas id="cnv"></canvas>	
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 		<script src="drawLine.js"></script>
+		<script src="displacement.js"></script>
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>	
+		<script src="https://swisnl.github.io/jQuery-contextMenu/js/main.js" type="text/javascript"></script>
+		 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="https://swisnl.github.io/jQuery-contextMenu/dist/jquery.contextMenu.js" type="text/javascript"></script>
+
+    <script src="https://swisnl.github.io/jQuery-contextMenu/dist/jquery.ui.position.min.js" type="text/javascript"></script>
+
+    <script src="https://swisnl.github.io/jQuery-contextMenu/js/main.js" type="text/javascript"></script>
+		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.js"></script>
+
+		<ul class='custom-menu'>
+		  <li data-action="first">Delete</li>
+		  <li data-action="second">Horizontal</li>
+		  <li data-action="third">Third thing</li>
+		</ul>
+
 		<script>
 			const canvas = document.querySelector('canvas');
 			const ctx = canvas.getContext('2d');
@@ -42,9 +86,17 @@
 			const leftCanvas = canvas.offsetLeft;
 			ctx.fillStyle = 'white';
 			ctx.fillRect(0,0,cw,ch);
-			var circles = [], drag = false, mouseX, mouseY, dragHoldX, dragHoldY;;
+			var circles = [], 
+				drag = false, 
+				mouseX, 
+				mouseY, 
+				dragHoldX, 
+				dragHoldY;
 			const pointRadius = 10;
 			var endDrowing = false;
+			var horizontal = 0, 
+				vertical = 1;
+			var edgeStatus = [];
 			
 			$(canvas).on("click", function(e) {
 				var i, len = circles.length;
@@ -68,7 +120,7 @@
 					}					
 				}
 				
-				console.log(e.pageX + " " + e.pageY)
+				//console.log(e.pageX + " " + e.pageY)
 				ctx.fillStyle = "black";
 				ctx.beginPath();
 				ctx.arc(x, y, 10, 0, 2*Math.PI);
@@ -87,17 +139,28 @@
 			$("button").on("click", function(e) {
 				$(canvas).prop('onclick',null).off('click');
 				canvas.addEventListener("mousedown", mouseDown, false);
-				console.log(circles);
+				
+				
+				$("canvas").bind("contextmenu", function(e) {
+					return true;
+				});
 			})
 
 			function drawPolygon() {
 				var n = circles.length;
 
 				for (var i = 0; i < n - 1; i++) {
-					MidpointLine(circles[i].x, circles[i].y, circles[i+1].x, circles[i+1].y);
+					if (edgeStatus[i] === horizontal) {
+						circles[i + 1].y = circles[i].y;
+					}
+														
+					MidpointLine(circles[i].x, circles[i].y, circles[i+1].x, circles[i+1].y);					
 				}
 				
 				if(endDrowing) {
+					if (edgeStatus[n-1] === horizontal) {
+						circles[0].y = circles[n-1].y;
+					}
 					MidpointLine(circles[0].x, circles[0].y, circles[n-1].x, circles[n-1].y);
 				}
 			}
@@ -111,77 +174,13 @@
 					ctx.fill();
 				}
 			}
-			//drawCircles();
-
-			function mouseDown(e)
-			{
-				var i, len = circles.length;
-				var bRect = canvas.getBoundingClientRect();
-				mouseX = (e.clientX - bRect.left);
-				mouseY = (e.clientY - bRect.top);
-				for (i=0; i < len; i++) {
-					if(inCircle(circles[i], mouseX, mouseY)) 
-					{
-						console.log(i);
-						drag = true;
-						dragHoldX = mouseX - circles[i].x;
-						dragHoldY = mouseY - circles[i].y;
-						dragIndex = i;
-					}
-				}
-				if (drag) 
-				{
-					window.addEventListener("mousemove", mouseMove, false);
-				}
-				canvas.removeEventListener("mousedown", mouseDown, false);
-				window.addEventListener("mouseup", mouseUp, false);
-				return false;		
-			}
-
-			function mouseMove(e)
-			{
-				var posX, posY;
-				var radius = circles[dragIndex].r;
-				var minX = radius;
-				var maxX = canvas.width - radius;
-				var minY = radius;
-				var maxY = canvas.height - radius;
-
-				var bRect = canvas.getBoundingClientRect();
-				mouseX = (e.clientX - bRect.left);
-				mouseY = (e.clientY - bRect.top);
-
-				posX = mouseX - dragHoldX;
-				posX = (posX < minX) ? minX : ((posX > maxX) ? maxX : posX);
-				posY = mouseY - dragHoldY;
-				posY = (posY < minY) ? minY : ((posY > maxY) ? maxY : posY);
-
-				circles[dragIndex].x = posX;
-				circles[dragIndex].y = posY;
-
-				ctx.fillStyle = 'white';
-				ctx.fillRect(0,0,cw,ch);
-				drawCircles();
-				drawPolygon();
-			}
 
 			function drawCanvas() {
 				ctx.fillStyle = 'white';
 				ctx.fillRect(0,0,cw,ch);
 				drawCircles();
 				drawPolygon();
-			}
-
-			function mouseUp()
-			{
-				canvas.addEventListener("mousedown", mouseDown, false);
-				window.removeEventListener("mouseup", mouseUp, false);
-				if (drag) 
-				{
-					drag = false;
-					window.removeEventListener("mousemove", mouseMove, false);
-				}
-			}		
+			}				
 
 			function inCircle(circle,mx,my) {
 				if (Math.abs(circle.x - mx) <= pointRadius && Math.abs(circle.y - my) <= pointRadius) {
@@ -203,25 +202,84 @@
 				}
 			}
 			
-			$( "canvas" ).contextmenu(function(e) {
-				console.log(e.pageX + " " + e.pageY);
-				var i, len = circles.length;
+			
+			$(document).bind("contextmenu", function (e) {    
+				// Avoid the real one
+				e.preventDefault();
 				var bRect = canvas.getBoundingClientRect();
 				mouseX = (e.clientX - bRect.left);
 				mouseY = (e.clientY - bRect.top);
+				console.log("mouse " + mouseX + " " + mouseY);
+				// Show contextmenu
+				$(".custom-menu").finish().toggle(100).
+
+				// In the right position (the mouse)
+				css({
+					top: e.pageY + "px",
+					left: e.pageX + "px"
+				});
+			});
+
+			// If the document is clicked somewhere
+			$(document).bind("mousedown", function (e) {
+				// If the clicked element is not the menu
+				if (!$(e.target).parents(".custom-menu").length > 0) {
+					// Hide it
+					$(".custom-menu").hide(100);
+				}
+			});
+
+
+			// If the menu element is clicked
+			$(".custom-menu li").click(function(e){
+
+				// This is the triggered action name
+				switch($(this).attr("data-action")) {
+					// A case for each action. Your actions here
+					case "first": deleteVertic(e); return;
+					case "second": Status(horizontal); return;
+					case "third": alert("third"); return;
+				}
+
+				// Hide it AFTER the action was triggered
+				$(".custom-menu").hide(100);
+			  });
+			
+			function deleteVertic(e) {
+				console.log("deleteVertic");
+				
+				var i, len = circles.length;			
+				
+				console.log("event + wynik" + event.clientX + " " + event.clientY + " " + mouseX + " " + mouseY);
 				for (i=0; i < len; i++) {
+					console.log(circles[i].x + " " + circles[i].y)
 					if(inCircle(circles[i], mouseX, mouseY)) 
 					{						
 						circles.splice(i, 1);
+						console.log("i");
 						drawCanvas();
 						break;
 					}
 				}
-			});
-
-			$("canvas").bind("contextmenu", function(e) {
-				return false;
-			});
+			};
+			
+			function Status(s) {
+				var i, n = circles.length;
+				for(i=0;i<n-1;i++) { 									
+					if (inEdge(circles[i].x, circles[i].y, circles[i+1].x, circles[i+1].y, mouseX, mouseY)) {						
+						edgeStatus[i] = s;						
+						circles[i+1].y = circles[i].y;
+						break;
+					}
+				}
+				if (inEdge(circles[n-1].x, circles[n-1].y, circles[0].x, circles[0].y, mouseX, mouseY)) {						
+					edgeStatus[n-1] = s;						
+					circles[0].y = circles[n-1].y;
+				}	
+				console.log(circles);
+				drawCanvas();
+				drawPolygon();
+			}
 		</script>
 	</body>
 </html>
