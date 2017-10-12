@@ -4,6 +4,7 @@
 				var bRect = canvas.getBoundingClientRect();
 				mouseX = (e.clientX - bRect.left);
 				mouseY = (e.clientY - bRect.top);
+				console.log(len)
 				for (i=0; i < len; i++) {
 					if(inCircle(circles[i], mouseX, mouseY)) 
 					{
@@ -42,11 +43,30 @@
 				posY = (posY < minY) ? minY : ((posY > maxY) ? maxY : posY);
 				
 				if (edgeStatus[dragIndex == 0? circles.length - 1 : dragIndex - 1] === horizontal) {
+					console.log("draw");
 					circles[dragIndex == 0? circles.length - 1 : dragIndex - 1].y = posY;
+					var i = (dragIndex == 0? circles.length - 1 : dragIndex - 1);
+					var x1 = (circles[dragIndex].x + circles[i].x) / 2;
+					var y1 = (circles[dragIndex].y + circles[i].y) / 2;
+					x1 = parseInt(x1);
+					y1 = parseInt(y1);
+					
+					drawStatusImages(x1, y1 - 14)
 				}
 				
 				if (edgeStatus[dragIndex] === horizontal) {
 					circles[dragIndex == circles.length-1 ? 0 : dragIndex + 1].y = posY;
+					console.log("horizontal");
+				}
+				
+				if (edgeStatus[dragIndex == 0? circles.length - 1 : dragIndex - 1] === vertical) {
+					circles[dragIndex == 0? circles.length - 1 : dragIndex - 1].x = posX;
+					console.log("vertical");
+				}
+				
+				if (edgeStatus[dragIndex] === vertical) {
+					circles[dragIndex == circles.length-1 ? 0 : dragIndex + 1].x = posX;
+					console.log("vertical");
 				}
 				
 				circles[dragIndex].x = posX;

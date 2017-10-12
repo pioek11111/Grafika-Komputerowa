@@ -40,6 +40,7 @@ function MidpointLine(x1, y1, x2, y2) {
 		bi = dy * 2;
 		d = bi - dx;
 		// pętla po kolejnych x
+		console.log("while")
 		while (x !== x2) {
 			// test współczynnika
 			if (d >= 0) {
@@ -57,6 +58,7 @@ function MidpointLine(x1, y1, x2, y2) {
 		bi = dx * 2;
 		d = bi - dy;
 		// pętla po kolejnych y
+		console.log("while")
 		while (y !== y2) {
 			// test współczynnika
 			if (d >= 0) {
