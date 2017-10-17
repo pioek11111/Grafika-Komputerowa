@@ -11,7 +11,7 @@ function setPixel(x, y) {
 }
 
 function MidpointLine(x1, y1, x2, y2) {
-	console.log('Algorytm Bresenhama');
+	console.log('Algorytm Bresenhama ' + x1 + " " + x2 + " " + x2 + " " + y2);
 	// zmienne pomocnicze
 	var d, dx, dy, ai, bi, xi, yi;
 	var x = x1;
@@ -40,8 +40,7 @@ function MidpointLine(x1, y1, x2, y2) {
 		bi = dy * 2;
 		d = bi - dx;
 		// pętla po kolejnych x
-		console.log("while")
-		while (x !== x2) {
+		while (x != x2) {
 			// test współczynnika
 			if (d >= 0) {
 				x += xi;
@@ -58,8 +57,7 @@ function MidpointLine(x1, y1, x2, y2) {
 		bi = dx * 2;
 		d = bi - dy;
 		// pętla po kolejnych y
-		console.log("while")
-		while (y !== y2) {
+		while (y != y2) {
 			// test współczynnika
 			if (d >= 0) {
 				x += xi;
@@ -72,4 +70,10 @@ function MidpointLine(x1, y1, x2, y2) {
 			setPixel(x, y);
 		}
 	}
+}
+function drawLine(x1, y1, x2, y2) {
+	ctx.beginPath();
+	ctx.moveTo(x1, y1);
+	ctx.lineTo(x2, y2);
+	ctx.stroke();
 }
