@@ -9,10 +9,11 @@ function canvasOnClick(e) {
 		endDrowing = true;
 		$("button").trigger("click");
 		drawPolygon();
+		endDrowing = true;
 		return;
 	}
 
-	for (i = 0; i < len - 1; i++) { // TODO: zmienić gdy domknięty
+	for (i = 0; i < len - 1; i++) { 
 		if (inEdge(circles[i].x, circles[i].y, circles[i + 1].x, circles[i + 1].y, x, y)) {					
 			x = (circles[i].x + circles[i + 1].x) / 2;
 			y = (circles[i].y + circles[i + 1].y) / 2;

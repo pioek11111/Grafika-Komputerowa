@@ -1,4 +1,9 @@
-function setPixel(x, y) {
+function setPixel(x, y, red) {
+	if(red) {
+		ctx.fillStyle = '#ff0000';
+	} else {
+		ctx.fillStyle = 'black';
+	}
 	var id = ctx.createImageData(1, 1); // only do this once per page
 	var d  = id.data;                        // only do this once per page
 	d[0]   = 125;
@@ -6,16 +11,15 @@ function setPixel(x, y) {
 	d[2]   = 125;
 	d[3]   = 125;
 	ctx.putImageData(id, x, y);
-	ctx.fillStyle = 'black';
 	ctx.fillRect(x, y, 1, 1);
 }
 
-function MidpointLine(x1, y1, x2, y2) {
-	console.log('Algorytm Bresenhama ' + x1 + " " + x2 + " " + x2 + " " + y2);
+function MidpointLine(x1, y1, x2, y2, red) {
 	// zmienne pomocnicze
 	var d, dx, dy, ai, bi, xi, yi;
 	var x = x1;
 	var y = y1;
+	
 	// ustalenie kierunku rysowania
 	if (x1 < x2) {
 		xi = 1;
@@ -33,7 +37,7 @@ function MidpointLine(x1, y1, x2, y2) {
 		dy = y1 - y2;
 	}
 	// pierwszy piksel
-	setPixel(x, y);
+	setPixel(x, y, red);
 	// oś wiodąca OX
 	if (dx > dy) {
 		ai = (dy - dx) * 2;
@@ -50,7 +54,7 @@ function MidpointLine(x1, y1, x2, y2) {
 				d += bi;
 				x += xi;
 			}
-			setPixel(x, y);
+			setPixel(x, y, red);
 		}
 	} else { // oś wiodąca Y
 		ai = (dx - dy) * 2;
@@ -67,13 +71,19 @@ function MidpointLine(x1, y1, x2, y2) {
 				d += bi;
 				y += yi;
 			}
-			setPixel(x, y);
+			setPixel(x, y, red);
 		}
 	}
 }
-function drawLine(x1, y1, x2, y2) {
+
+function drawLine(x1, y1, x2, y2, red = false) {
 	ctx.beginPath();
 	ctx.moveTo(x1, y1);
 	ctx.lineTo(x2, y2);
+	if(red) {
+		ctx.strokeStyle = '#ff0000';
+	} else {
+		ctx.strokeStyle = 'black';
+	}
 	ctx.stroke();
 }

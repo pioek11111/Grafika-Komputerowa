@@ -2,7 +2,7 @@
 <html lang="">
 	<head>
 		<meta charset="utf-8">
-		<title>Tennis Game</title>
+		<title>Draw polygon</title>
 
 		<style>
 			body {
@@ -102,7 +102,8 @@
 				vertical = 1;
 			var minimumDistance = 10;
 			var edgeStatus = [];
-
+			
+			console.log("modulo -1 5 " + modulo(-1, 5));
 			$(canvas).on("click", canvasOnClick);
 
 			$("button").on("click", function(e) {
@@ -118,42 +119,48 @@
 			function drawPolygon() {
 				var n = circles.length;
 				for (var i = 0; i < n - 1; i++) {
+					var red = false;
 					if (edgeStatus[i] == horizontal) {
-						circles[i + 1].y = circles[i].y;
+						//circles[i + 1].y = circles[i].y;
 						var x1 = (circles[i].x + circles[i + 1].x) / 2;
 						var y1 = (circles[i].y + circles[i + 1].y) / 2;
 						x1 = parseInt(x1);
 						y1 = parseInt(y1);
 						drawStatusImages(x1, y1 - 14, horizontal);
 					} else if (edgeStatus[i] == vertical) {
-						circles[i + 1].x = circles[i].x;
+						//circles[i + 1].x = circles[i].x;
 						var x1 = (circles[i].x + circles[i + 1].x) / 2;
 						var y1 = (circles[i].y + circles[i + 1].y) / 2;
 						x1 = parseInt(x1);
 						y1 = parseInt(y1);
 						drawStatusImages(x1 - 20, y1, vertical);
+					} else if (edgeStatus[i] >= minimumDistance) {
+						red = true;
 					}
 
-					drawLine(circles[i].x, circles[i].y, circles[i + 1].x, circles[i + 1].y);
+					drawLine(circles[i].x, circles[i].y, circles[i + 1].x, circles[i + 1].y, red);
 				}
 
 				if (endDrowing) {
+					var red = false;
 					if (edgeStatus[n - 1] == horizontal) {
-						circles[0].y = circles[n - 1].y;
+						//circles[0].y = circles[n - 1].y;
 						var x1 = (circles[0].x + circles[n - 1].x) / 2;
 						var y1 = (circles[0].y + circles[n - 1].y) / 2;
 						x1 = parseInt(x1);
 						y1 = parseInt(y1);
 						drawStatusImages(x1, y1 - 14, horizontal);
 					} else if (edgeStatus[n - 1] == vertical) {
-						circles[0].x = circles[n - 1].x;
+						//circles[0].x = circles[n - 1].x;
 						var x1 = (circles[0].x + circles[n - 1].x) / 2;
 						var y1 = (circles[0].y + circles[n - 1].y) / 2;
 						x1 = parseInt(x1);
 						y1 = parseInt(y1);
 						drawStatusImages(x1 - 20, y1, vertical);
+					} else if (edgeStatus[i] >= minimumDistance) {
+						red = true;
 					}
-					MidpointLine(circles[0].x, circles[0].y, circles[n - 1].x, circles[n - 1].y);
+					MidpointLine(circles[0].x, circles[0].y, circles[n - 1].x, circles[n - 1].y, red);
 				}
 			}
 
@@ -234,9 +241,10 @@
 						Status(vertical);
 						return;
 					case "distance":
-						Status(100);
+						var distance = prompt("Please enter your name:", "100");
+						Status(parseInt(distance));
 						return;
-												   }
+				}
 				// Hide it AFTER the action was triggered
 				$(".custom-menu").hide(100);
 			});
@@ -267,7 +275,6 @@
 							var sub = setDistance(circles[i].x, circles[i].y, circles[i + 1].x, circles[i + 1].y, s);
 							circles[i + 1].x -= parseInt(sub.dx);
 							circles[i + 1].y -= parseInt(sub.dy);
-							//console.log("setDist");
 						}
 						break;
 					}
@@ -278,12 +285,17 @@
 						circles[0].y = circles[n - 1].y;
 					} else if (s == vertical) {
 						circles[0].x = circles[n - 1].x;
+					} else if(s >= minimumDistance) {
+						var sub = setDistance(circles[n-1].x, circles[n-1].y, circles[0].x, circles[0].y, s);
+						circles[0].x -= parseInt(sub.dx);
+						circles[0].y -= parseInt(sub.dy);
 					}
 				}
+				repairPolygon((i+1)%n);
 				drawCanvas();
 				drawPolygon();
 			}
-
+			
 			function drawStatusImages(x, y, s) {
 				var img=new Image();
 				img.onload=function() {
