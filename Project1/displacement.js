@@ -1,5 +1,6 @@
 function mouseDown(e) {
 	var i, len = circles.length;
+	var n2 = secondCircles.length;
 	var bRect = canvas.getBoundingClientRect();
 	mouseX = (e.clientX - bRect.left);
 	mouseY = (e.clientY - bRect.top);
@@ -12,7 +13,8 @@ function mouseDown(e) {
 			dragHoldY = mouseY - circles[i].y;
 			dragIndex = i;
 		}
-	}
+	}	
+	
 	if (drag) {
 		window.addEventListener("mousemove", mouseMove, false);
 	} else if (endDrowing) {
@@ -39,11 +41,11 @@ function mouseMove2(e) {
 	mouseX = mouseXNew;
 	mouseY = mouseYNew;
 	
-	ctx.fillStyle = 'white';
-	ctx.fillRect(0,0,cw,ch);
-	drawCircles();
-	drawPolygon();
+	drawCanvas();
 }
+
+var relationsToAdd = [];
+var eps = 15;
 
 function mouseMove(e) {
 	var posX, posY;
@@ -61,7 +63,8 @@ function mouseMove(e) {
 	posX = (posX < minX) ? minX : ((posX > maxX) ? maxX : posX);
 	posY = mouseY - dragHoldY;
 	posY = (posY < minY) ? minY : ((posY > maxY) ? maxY : posY);
-	
+	posY = parseInt(posY);
+	posX = parseInt(posX);
 	
 	var idx1 = dragIndex == 0? circles.length - 1 : dragIndex - 1;
 	var idx2 = dragIndex == 0? 0 : idx1+1;
@@ -69,6 +72,41 @@ function mouseMove(e) {
 	var idx4 = idx3 == circles.length - 1 ? 0 : idx3+1;
 	var prevDistance = false;
 	var nextDistance = false;
+	
+	
+	if (newRelation) {
+		if ( Math.abs(circles[modulo(dragIndex-1, n)].x - posX) <= eps ) {
+			posX = circles[modulo(dragIndex-1, n)].x;
+			relationsToAdd.push({
+				index: modulo(dragIndex-1, n),
+				type: vertical
+			})
+		}
+		if (Math.abs(circles[modulo(dragIndex + 1, n)].x - posX) <= eps) {
+			posX = circles[modulo(dragIndex+1, n)].x;
+			relationsToAdd.push({
+				index: dragIndex,
+				type: vertical
+			})
+		}
+		if ( Math.abs(circles[modulo(dragIndex-1, n)].y - posY) <= eps ) {
+			posY = circles[modulo(dragIndex-1, n)].y;
+			relationsToAdd.push({
+				index: modulo(dragIndex-1, n),
+				type: horizontal
+			})
+		}
+		if (Math.abs(circles[modulo(dragIndex + 1, n)].y - posY) <= eps) {
+			posY = circles[modulo(dragIndex+1, n)].y;
+			relationsToAdd.push({
+				index: dragIndex,
+				type: horizontal
+			})
+		}		
+	}
+	
+	posY = parseInt(posY);
+	posX = parseInt(posX);
 	
 	if (edgeStatus[idx2] >= minimumDistance) { // następna krawędź ma określony dystans
 		var dist = Math.sqrt((posX-circles[idx3].x) * (posX-circles[idx3].x) + (posY-circles[idx3].y) * (posY-circles[idx3].y));
@@ -97,54 +135,13 @@ function mouseMove(e) {
 			circles[idx1].y = point1.py;
 		}		
 	}
-	/*if (edgeStatus[idx1] >= minimumDistance && edgeStatus[idx2] >= minimumDistance) { // punkt pomiedy dwiema ograniczonymi krawedziami
-		
-		var point = crossCirclesPoints(circles[idx1].x, circles[idx1].y, circles[idx3].x, circles[idx3].y, edgeStatus[idx1], edgeStatus[idx2]);
-		var d1= crossProduct(circles[idx3].x - circles[idx1].x, circles[idx3].y - circles[idx1].y, point.p1x - circles[idx1].x, point.p1y - circles[idx1].y); // położenie punktu p1 względem odcinka p3p4
-		var d2= crossProduct(circles[idx3].x - circles[idx1].x, circles[idx3].y - circles[idx1].y, posX - circles[idx1].x, posY - circles[idx1].y); // położenie punktu p2 względem odcinka p3p4 
-		if (d1 * d2 > 0) {
-			posX = parseInt(point.p1x);
-			posY = parseInt(point.p1y);
-		} else {
-			posX = parseInt(point.p2x);
-			posY = parseInt(point.p2y);
-		}
-	} else if (edgeStatus[dragIndex == 0? circles.length - 1 : dragIndex - 1] >= minimumDistance) { // poprzednia krawędź ma określony dystans
-		var idx1 = dragIndex == 0? circles.length - 1 : dragIndex - 1;
-		var idx2 = dragIndex == 0? 0 : idx1+1;
-		var point = pointOnCircle(circles[idx1].x, circles[idx1].y, posX, posY, edgeStatus[idx1]);
-		posX = parseInt(point.x);
-		posY = parseInt(point.y);
-		prevDistance = true;
-	} else if (edgeStatus[dragIndex] >= minimumDistance) {// czy następna krawędź ma określony dystans
-		var idx2 = dragIndex == circles.length - 1? 0 : dragIndex+1;
-		var point = pointOnCircle(circles[idx2].x, circles[idx2].y, posX, posY, edgeStatus[dragIndex]);
-		posX = parseInt(point.x);
-		posY = parseInt(point.y);
-		nextDistance = true;
-	}*/
 	
 	if (edgeStatus[dragIndex == 0? circles.length - 1 : dragIndex - 1] == horizontal) {
-		circles[dragIndex == 0? circles.length - 1 : dragIndex - 1].y = posY;
-		var i = (dragIndex == 0? circles.length - 1 : dragIndex - 1);
-		var x1 = (circles[dragIndex].x + circles[i].x) / 2;
-		var y1 = (circles[dragIndex].y + circles[i].y) / 2;
-		x1 = parseInt(x1);
-		y1 = parseInt(y1);		
-		//drawStatusImages(x1, y1 - 14, horizontal)
+		circles[dragIndex == 0? circles.length - 1 : dragIndex - 1].y = posY;		
 	}
 
 	if (edgeStatus[dragIndex] == horizontal) {
 		circles[dragIndex == circles.length-1 ? 0 : dragIndex + 1].y = posY;
-		if(prevDistance && edgeStatus[idx3] >= minimumDistance) { // distance horizontal distance
-			var p = pointsOnCircleWithSpecifiedY(circles[idx4].x, circles[idx4].y, circles[idx3].y, edgeStatus[idx3]);
-			if(!isNaN(p.p1x)) circles[idx3].x = Math.abs(circles[idx2].x - p.p1x) > Math.abs(circles[idx2].x - p.p2x) ? p.p2x : p.p1x;
-			if(Math.abs(p.p1x - p.p2x) < 30 || isNaN(p.p1x)) {
-				posX = circles[idx2].x;
-				posY = circles[idx2].y;
-				circles[idx3].y = circles[idx2].y;
-			}
-		}
 	}
 	
 	if (edgeStatus[dragIndex == 0? circles.length - 1 : dragIndex - 1] == vertical) {
@@ -154,6 +151,7 @@ function mouseMove(e) {
 	if (edgeStatus[dragIndex] == vertical) {
 		circles[dragIndex == circles.length-1 ? 0 : dragIndex + 1].x = posX;
 	}
+	
 	circles[dragIndex].x = posX;
 	circles[dragIndex].y = posY;
 	
@@ -175,6 +173,22 @@ function mouseUp()
 		drag = false;
 		window.removeEventListener("mousemove", mouseMove, false);
 	}
+	var n = relationsToAdd.length;
+	for(var i = 0; i < n; i++) {
+		var j = relationsToAdd[i].index;
+		if (Math.abs(circles[j].x - circles[modulo(j + 1, n)].x) <= eps && edgeStatus[modulo(j + 1, n)] != relationsToAdd[i].type && 
+		    edgeStatus[modulo(j -1, n)] != relationsToAdd[i].type) {
+			
+			edgeStatus[relationsToAdd[i].index] = relationsToAdd[i].type;
+		}
+		if (Math.abs(circles[j].y - circles[modulo(j + 1, n)].y && edgeStatus[modulo(j + 1, n)] != relationsToAdd[i].type && 
+		    edgeStatus[modulo(j -1, n)] != relationsToAdd[i].type) <= eps ) {
+			
+			edgeStatus[relationsToAdd[i].index] = relationsToAdd[i].type;	
+		}
+	}
+	relationsToAdd = [];
+	drawCanvas();
 	window.removeEventListener("mousemove", mouseMove2, false);
 }	
 
@@ -256,9 +270,6 @@ function repairPolygon(startIndex) {
 	for(var j = 0; j < n - 2; j++) {
 		if (edgeStatus[i] == horizontal) {
 			circles[(i + 1) % n].y = circles[i].y;
-			if(circles[(i + 1) % n].y < 0) {
-				debugger;
-			}
 		} else if (edgeStatus[i] == vertical) {
 			circles[(i + 1) % n].x = circles[i].x;
 		} else if (edgeStatus[i] >= minimumDistance) { 		
@@ -274,16 +285,17 @@ function repairPolygon(startIndex) {
 
 function repairPolygonReverse(startIndex) {
 	var n = circles.length;
-	var i = startIndex;
+	var i = modulo(startIndex+1,n);
+
 	for(var j = 0; j < n - 2; j++) {
-		if (edgeStatus[i] == horizontal) {
-			circles[i].y = circles[(i + 1) % n].y;
-		} else if (edgeStatus[i] == vertical) {
-			circles[i].x = circles[(i + 1) % n].x;
-		} else if (edgeStatus[i] >= minimumDistance) {
-			var sub = setDistance(circles[(i + 1) % n].x, circles[(i + 1) % n].y, circles[i].x, circles[i].y, edgeStatus[i]);
-			circles[i].x -= parseInt(sub.dx);
-			circles[i].y -= parseInt(sub.dy);
+		if (edgeStatus[modulo(i-1, n)] == horizontal) {
+			circles[modulo(i-1, n)].y = circles[i].y;
+		} else if (edgeStatus[modulo(i-1, n)] == vertical) {
+			circles[modulo(i-1, n)].x = circles[i].x;
+		} else if (edgeStatus[modulo(i-1, n)] >= minimumDistance) {
+			var sub = setDistance(circles[i].x, circles[i].y, circles[modulo(i-1, n)].x, circles[modulo(i-1, n)].y, edgeStatus[modulo(i-1, n)]);
+			circles[modulo(i-1, n)].x -= parseInt(sub.dx);
+			circles[modulo(i-1, n)].y -= parseInt(sub.dy);
 		} else {
 			break;
 		}
@@ -293,4 +305,4 @@ function repairPolygonReverse(startIndex) {
 
 function modulo(a, n) {
     return ((a%n)+n)%n;
-};
+}

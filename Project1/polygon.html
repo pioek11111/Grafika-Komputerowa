@@ -13,6 +13,7 @@
 				justify-content: center;
 				height: 100vh;
 				background-color: darkgray;
+				text-align: center;
 			}
 
 			canvas {
@@ -20,13 +21,26 @@
 			}
 
 			button {
-				left: 50px;
-				top: 20px;
-				height: 25px;
-
+				height: 40px;
+				width: 100px;
+				margin: auto 10px;
 			}
 
-			.custom-menu {
+			.edge-menu {
+				display: none;
+				z-index: 1000;
+				position: absolute;
+				overflow: hidden;
+				border: 1px solid #CCC;
+				white-space: nowrap;
+				font-family: sans-serif;
+				background: #FFF;
+				color: #333;
+				border-radius: 5px;
+				padding: 0;
+			}
+			
+			.vertical-menu {
 				display: none;
 				z-index: 1000;
 				position: absolute;
@@ -40,43 +54,75 @@
 				padding: 0;
 			}
 
-			/* Each of the items in the list */
-
-			.custom-menu li {
+			.edge-menu li {
 				padding: 8px 12px;
 				cursor: pointer;
 				list-style-type: none;
 				transition: all .3s ease;
 				user-select: none;
 			}
-
-			.custom-menu li:hover {
+			
+			.vertical-menu li {
+				padding: 8px 12px;
+				cursor: pointer;
+				list-style-type: none;
+				transition: all .3s ease;
+				user-select: none;
+			}
+			
+			.edge-menu li:hover {
 				background-color: #DEF;
+			}
+			
+			.vertical-menu li:hover {
+				background-color: #DEF;
+			}
+			
+			#panel {
+				height: 50px;
+				width: 1000px;
+				border: 3px solid black;
+				align-content: center;
+				margin: 10px;
+				background-color: white;
+			}
+			#wraper {				
+				text-align: center;
+				margin: 200px 100px;
 			}
 		</style>
 	</head>
-
+	
 	<body>
-		<button></button>
-		<canvas id="cnv"></canvas>
+		<div id="wraper">
+			<div id="panel">			
+				<button id="endDrawing">End drawing</button>
+				<button id="removePolygon">Delete Polygon</button>	
+				<input id="checkbox" type="checkbox" name="vehicle" value="false">New relation<br>
+			</div>		
+			<canvas id="cnv"></canvas>
+		</div>
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 		<script src="drawLine.js"></script>
 		<script src="displacement.js"></script>
 		<script src="onClick.js"></script>
-		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+		
 		<script src="https://swisnl.github.io/jQuery-contextMenu/js/main.js" type="text/javascript"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 		<script src="https://swisnl.github.io/jQuery-contextMenu/dist/jquery.contextMenu.js" type="text/javascript"></script>
 		<script src="https://swisnl.github.io/jQuery-contextMenu/dist/jquery.ui.position.min.js" type="text/javascript"></script>
-
 		<script src="https://swisnl.github.io/jQuery-contextMenu/js/main.js" type="text/javascript"></script>
 		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.js"></script>
 
-		<ul class='custom-menu'>
-			<li data-action="first">Delete</li>
+		<ul class='edge-menu'>
+			<li data-action="first">Add Vertex</li>
 			<li data-action="second">Horizontal</li>
 			<li data-action="third">Vertical</li>
 			<li data-action="distance">Distance</li>
+		</ul>
+		
+		<ul class='vertical-menu'>
+			<li data-action="first">Delete</li>
 		</ul>
 
 		<script>
@@ -90,45 +136,56 @@
 			const leftCanvas = canvas.offsetLeft;
 			ctx.fillStyle = 'white';
 			ctx.fillRect(0, 0, cw, ch);
-			var circles = [],
-				drag = false,
-				mouseX,
-				mouseY,
-				dragHoldX,
-				dragHoldY;
+			var circles = [];
+			var secondCircles = [];
+			var	drag = false;
+			var	mouseX;
+			var	mouseY;
+			var	dragHoldX;
+			var	dragHoldY;
 			const pointRadius = 10;
 			var endDrowing = false;
-			var horizontal = 0,
-				vertical = 1;
+			var horizontal = 0;
+			var	vertical = 1;
 			var minimumDistance = 10;
 			var edgeStatus = [];
+			var indexOfEdge;
+			var color = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+			var newRelation = false;
 			
-			console.log("modulo -1 5 " + modulo(-1, 5));
+			console.log("mod " + modulo(0-1, 4));
 			$(canvas).on("click", canvasOnClick);
-
-			$("button").on("click", function(e) {
+			
+			$("#removePolygon").on("click", clearPolygon);
+			
+			$("#endDrawing").on("click", function(e) {
 				$(canvas).prop('onclick', null).off('click');
 				canvas.addEventListener("mousedown", mouseDown, false);
-
 
 				$("canvas").bind("contextmenu", function(e) {
 					return true;
 				});
 			})
-
+			
+			$('#checkbox').change(function () {
+				if(document.getElementById('checkbox').checked) {
+					newRelation = true;
+				} else {
+					newRelation = false;
+				}
+			});
+			
 			function drawPolygon() {
 				var n = circles.length;
 				for (var i = 0; i < n - 1; i++) {
 					var red = false;
 					if (edgeStatus[i] == horizontal) {
-						//circles[i + 1].y = circles[i].y;
 						var x1 = (circles[i].x + circles[i + 1].x) / 2;
 						var y1 = (circles[i].y + circles[i + 1].y) / 2;
 						x1 = parseInt(x1);
 						y1 = parseInt(y1);
-						drawStatusImages(x1, y1 - 14, horizontal);
+						drawStatusImages(x1, y1 - 16, horizontal);
 					} else if (edgeStatus[i] == vertical) {
-						//circles[i + 1].x = circles[i].x;
 						var x1 = (circles[i].x + circles[i + 1].x) / 2;
 						var y1 = (circles[i].y + circles[i + 1].y) / 2;
 						x1 = parseInt(x1);
@@ -144,14 +201,12 @@
 				if (endDrowing) {
 					var red = false;
 					if (edgeStatus[n - 1] == horizontal) {
-						//circles[0].y = circles[n - 1].y;
 						var x1 = (circles[0].x + circles[n - 1].x) / 2;
 						var y1 = (circles[0].y + circles[n - 1].y) / 2;
 						x1 = parseInt(x1);
 						y1 = parseInt(y1);
-						drawStatusImages(x1, y1 - 14, horizontal);
+						drawStatusImages(x1, y1 - 16, horizontal);
 					} else if (edgeStatus[n - 1] == vertical) {
-						//circles[0].x = circles[n - 1].x;
 						var x1 = (circles[0].x + circles[n - 1].x) / 2;
 						var y1 = (circles[0].y + circles[n - 1].y) / 2;
 						x1 = parseInt(x1);
@@ -161,6 +216,12 @@
 						red = true;
 					}
 					MidpointLine(circles[0].x, circles[0].y, circles[n - 1].x, circles[n - 1].y, red);
+				}
+				
+				// new polygon
+				var n2 = secondCircles.length;
+				for (var i = 0; i < secondCircles.length; i++) {
+					drawLine(secondCircles[i].x, secondCircles[i].y, secondCircles[(i + 1) % n2].x, secondCircles[(i + 1) % n2].y, red);
 				}
 			}
 
@@ -172,13 +233,21 @@
 					ctx.arc(circles[i].x, circles[i].y, circles[i].r, 0, 2 * Math.PI, false);
 					ctx.fill();
 				}
+				
+				var n2 = secondCircles.length;
+				for (i = 0; i < n2; i++) {
+					ctx.fillStyle = secondCircles[i].color;
+					ctx.beginPath();
+					ctx.arc(secondCircles[i].x, secondCircles[i].y, secondCircles[i].r, 0, 2 * Math.PI, false);
+					ctx.fill();
+				}
 			}
 
 			function drawCanvas() {
 				ctx.fillStyle = 'white';
-				ctx.fillRect(0, 0, cw, ch);
-				drawCircles();
+				ctx.fillRect(0, 0, cw, ch);				
 				drawPolygon();
+				drawCircles();
 			}
 
 			function inCircle(circle, mx, my) {
@@ -188,51 +257,75 @@
 					return false;
 				}
 			}
-
+			
 			function inEdge(x1, y1, x2, y2, x3, y3) {
 				var a = (y1 - y2) / (x1 - x2);
 				var b = y1 - a * x1;
-				if (x3 < Math.max(x1, x2) && x3 > Math.min(x1, x2) && y3 < Math.max(y1, y2) &&
-					y3 > Math.min(y1, y2) && Math.abs(y3 - a * x3 - b) <= pointRadius*2) {
+				x3 = parseInt(x3);
+				y3 = parseInt(y3);
+				var e = pointRadius;
+				if (x3 <= Math.max(x1, x2) + e && x3 + e >= Math.min(x1, x2) && y3 <= Math.max(y1, y2) + e &&
+					y3 + e >= Math.min(y1, y2) && ( Math.abs(y3 - a * x3 - b) <= pointRadius*2 || Math.abs(x1 - x2) <= 2)) {
 					return true;
 				} else {
 					return false;
 				}
 			}
-
+			
+			// wyświetlanie menu kontekstowego
 			$(document).bind("contextmenu", function(e) {
-				// Avoid the real one
 				e.preventDefault();
 				var bRect = canvas.getBoundingClientRect();
 				mouseX = (e.clientX - bRect.left);
 				mouseY = (e.clientY - bRect.top);
-				// Show contextmenu
-				$(".custom-menu").finish().toggle(100).
+				var i, len = circles.length;
 
-				// In the right position (the mouse)
-				css({
-					top: e.pageY + "px",
-					left: e.pageX + "px"
-				});
+				for (i = 0; i < len; i++) {
+					if (inCircle(circles[i], mouseX, mouseY)) {
+						$(".vertical-menu").finish().toggle(100).
+						// In the right position (the mouse)
+						css({
+							top: e.pageY + "px",
+							left: e.pageX + "px"
+						});
+						return;
+					}
+				}
+				
+				for (i = 0; i < len; i++) {
+					if (inEdge(circles[i].x, circles[i].y, circles[(i + 1)%len].x, circles[(i + 1)%len].y, mouseX, mouseY)) {
+						indexOfEdge = i;
+						$(".edge-menu").finish().toggle(100).
+						css({
+							top: e.pageY + "px",
+							left: e.pageX + "px"
+						});
+						break;
+					}
+				}
 			});
 
 			// If the document is clicked somewhere
 			$(document).bind("mousedown", function(e) {
 				// If the clicked element is not the menu
-				if (!$(e.target).parents(".custom-menu").length > 0) {
+				if (!$(e.target).parents(".edge-menu").length > 0) {
 					// Hide it
-					$(".custom-menu").hide(000);
+					$(".edge-menu").hide(000);
+				}
+				if (!$(e.target).parents(".vertical-menu").length > 0) {
+					// Hide it
+					$(".vertical-menu").hide(000);
 				}
 			});
 
 
 			// If the menu element is clicked
-			$(".custom-menu li").click(function(e) {
+			$(".edge-menu li").click(function(e) {
 				// This is the triggered action name
 				switch ($(this).attr("data-action")) {
 						// A case for each action. Your actions here
 					case "first":
-						deleteVertic(e);
+						addVertex(indexOfEdge);
 						return;
 					case "second":
 						Status(horizontal);
@@ -246,11 +339,24 @@
 						return;
 				}
 				// Hide it AFTER the action was triggered
-				$(".custom-menu").hide(100);
+				$(".edge-menu").hide(100);
 			});
-
-			function deleteVertic(e) {
-
+			
+			
+			$(".vertical-menu li").click(function(e) {
+				// This is the triggered action name
+				switch ($(this).attr("data-action")) {
+					// A case for each action. Your actions here
+					case "first":
+						deleteVertex(e);
+						return;		
+				}
+				// Hide it AFTER the action was triggered
+				$(".vertical-menu").hide(100);
+			});
+				
+			// 
+			function deleteVertex(e) {
 				var i, len = circles.length;
 
 				for (i = 0; i < len; i++) {
@@ -264,36 +370,26 @@
 
 			function Status(s) {
 				var i, n = circles.length;
-				for (i = 0; i < n - 1; i++) {
-					if (inEdge(circles[i].x, circles[i].y, circles[i + 1].x, circles[i + 1].y, mouseX, mouseY)) {
-						edgeStatus[i] = s;
-						if (s == horizontal) {
-							circles[i + 1].y = circles[i].y;
-						} else if (s == vertical) {
-							circles[i + 1].x = circles[i].x;
+				for (i = 0; i < n ; i++) {
+					if (inEdge(circles[i].x, circles[i].y, circles[(i + 1) % n].x, circles[(i + 1) % n].y, mouseX, mouseY)) {						
+						if (s == horizontal && edgeStatus[(i + 1) % n] != horizontal && edgeStatus[modulo(i-1, n)] != horizontal) {
+							circles[(i + 1) % n].y = circles[i].y;
+							edgeStatus[i] = s;
+						} else if (s == vertical && edgeStatus[(i + 1) % n] != vertical && edgeStatus[modulo(i-1, n)] != vertical) {
+							circles[(i + 1) % n].x = circles[i].x;
+							edgeStatus[i] = s;
 						}  else if(s >= minimumDistance) {
-							var sub = setDistance(circles[i].x, circles[i].y, circles[i + 1].x, circles[i + 1].y, s);
-							circles[i + 1].x -= parseInt(sub.dx);
-							circles[i + 1].y -= parseInt(sub.dy);
+							edgeStatus[i] = s;
+							var sub = setDistance(circles[i].x, circles[i].y, circles[(i+1) %n].x, circles[(i + 1) % n].y, s);
+							circles[(i + 1) % n].x -= parseInt(sub.dx);
+							circles[(i + 1) % n].y -= parseInt(sub.dy);
 						}
 						break;
 					}
 				}
-				if (inEdge(circles[n - 1].x, circles[n - 1].y, circles[0].x, circles[0].y, mouseX, mouseY)) {
-					edgeStatus[n - 1] = s;
-					if (s == horizontal) {
-						circles[0].y = circles[n - 1].y;
-					} else if (s == vertical) {
-						circles[0].x = circles[n - 1].x;
-					} else if(s >= minimumDistance) {
-						var sub = setDistance(circles[n-1].x, circles[n-1].y, circles[0].x, circles[0].y, s);
-						circles[0].x -= parseInt(sub.dx);
-						circles[0].y -= parseInt(sub.dy);
-					}
-				}
 				repairPolygon((i+1)%n);
+				repairPolygonReverse(modulo(i-1, n));
 				drawCanvas();
-				drawPolygon();
 			}
 			
 			function drawStatusImages(x, y, s) {
@@ -306,15 +402,42 @@
 				} else {
 					img.src="vertical.png";
 				}
-			}	
+			}
 
 			function setDistance(x1, y1, x2, y2, d) {	
 				var dist = Math.sqrt((x1-x2) * (x1-x2) + (y1-y2) * (y1-y2));
 				var dx = (1-d/dist) * (x2 - x1);
 				var dy = (1-d/dist) * (y2 - y1);
 				return {dx:dx, dy:dy};
-			}			
-
-		</script>
+			}
+			
+			function clearPolygon()
+			{
+				circles = [];
+				secondCircles = [];
+				edgeStatus = [];
+				endDrowing = false;
+				drawCanvas();
+				$(canvas).on("click", canvasOnClick);
+			}
+			
+			function addVertex(i) {	
+				var n = circles.length;
+				var color = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+				x = (circles[i].x + circles[(i + 1) % n].x) / 2;
+				y = (circles[i].y + circles[(i + 1) % n].y) / 2;
+				x = parseInt(x);
+				y = parseInt(y);
+				circles.splice(i + 1, 0, {
+					x: x,
+					y: y,
+					r: pointRadius,
+					color: color
+				});
+				repairPolygon((i+2)%n);
+				repairPolygonReverse(modulo(i, n));
+				drawCanvas();
+			}
+	</script>
 	</body>
 </html>
