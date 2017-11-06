@@ -1,0 +1,21 @@
+Grafika Komputerowa
+
+Zadanie 1
+
+Piotr Niedziela
+
+- po klikniêciu prawym przyciskiem myszy na wierzcho³ek mo¿na go usun¹æ za pomoc¹ menu kontekstowego
+- po klikniêciu prawym przyciskiem myszy na krawêdŸ mo¿na dodaæ relacjê(poziom¹, pionow¹ lub d³ugoœæ) 
+  oraz dodaæ wierzcho³ek na œrodku klikniêtej krawêdzi
+- gdy podczas rysowania klikniemy na pierwszy wierzcho³ek wielok¹t siê zamyka i wierzcho³ki mo¿na dodawaæ tylko 
+  na œrodku krawêdzi
+- po klikniêciu przycisku "Zakoñcz rysowanie" nie mo¿na ju¿ dodawaæ wierzcho³ków klikaj¹c w dowolne miejsce, lecz tylko
+  klikaj¹c prawym przyciskiem myszy na krawêdŸ i dodaj¹c wierzcho³ek na œrodku
+- po klikniêciu przycisku "Usuñ wielok¹t" czyœci siê plansza i mo¿na rysowaæ od pocz¹tku
+
+
+Algorytm relacji
+Relacje przechowywane s¹ w tablicy. Gdy dodawana jest relacja, wielok¹t jest poprawiany w dwóch kierunkach, a¿ do 
+napotkania krawêdzi bez relacji. Pêtla poprawiaj¹ca przechodzi przez no najwy¿ej n-2 krawêdzie gdzie n to liczba 
+wierzcho³ków. Gdy wierzcho³ek zostanie przesuniêty, poprawiane s¹ dwie s¹siednie krawêdzie, a nastêpnie analogiczne 
+poprawianie w dwóch kierunkach jak w przypadku dodawania relacji.

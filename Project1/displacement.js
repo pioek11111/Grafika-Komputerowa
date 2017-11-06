@@ -5,15 +5,18 @@ function mouseDown(e) {
 	mouseX = (e.clientX - bRect.left);
 	mouseY = (e.clientY - bRect.top);
 	console.log(len)
-	for (i=0; i < len; i++) {
-		if(inCircle(circles[i], mouseX, mouseY)) {
-			console.log(i);
-			drag = true;
-			dragHoldX = mouseX - circles[i].x;
-			dragHoldY = mouseY - circles[i].y;
-			dragIndex = i;
+	for(var j = 0; j <= polygonIndex; j++) {
+		for (i=0; i < circles[j].length; i++) {
+			if(inCircle(circles[j][i], mouseX, mouseY)) {
+				console.log(i);
+				drag = true;
+				dragHoldX = mouseX - circles[j][i].x;
+				dragHoldY = mouseY - circles[j][i].y;
+				dragIndex = i;
+				dragIndexj = j;
+			}
 		}
-	}	
+	}
 	
 	if (drag) {
 		window.addEventListener("mousemove", mouseMove, false);
@@ -49,7 +52,7 @@ var eps = 15;
 
 function mouseMove(e) {
 	var posX, posY;
-	var radius = circles[dragIndex].r;
+	var radius = circles[dragIndexj][dragIndex].r;
 	var minX = radius;
 	var maxX = canvas.width - radius;
 	var minY = radius;
@@ -152,16 +155,13 @@ function mouseMove(e) {
 		circles[dragIndex == circles.length-1 ? 0 : dragIndex + 1].x = posX;
 	}
 	
-	circles[dragIndex].x = posX;
-	circles[dragIndex].y = posY;
+	circles[dragIndexj][dragIndex].x = posX;
+	circles[dragIndexj][dragIndex].y = posY;
 	
 	repairPolygon((dragIndex+1)%n);
 	repairPolygonReverse( modulo(dragIndex-1, n));
 	
-	ctx.fillStyle = 'white';
-	ctx.fillRect(0,0,cw,ch);	
-	drawPolygon();
-	drawCircles();
+	drawCanvas();
 }
 
 function mouseUp()
@@ -173,21 +173,7 @@ function mouseUp()
 		drag = false;
 		window.removeEventListener("mousemove", mouseMove, false);
 	}
-	var n = relationsToAdd.length;
-	for(var i = 0; i < n; i++) {
-		var j = relationsToAdd[i].index;
-		if (Math.abs(circles[j].x - circles[modulo(j + 1, n)].x) <= eps && edgeStatus[modulo(j + 1, n)] != relationsToAdd[i].type && 
-		    edgeStatus[modulo(j -1, n)] != relationsToAdd[i].type) {
-			
-			edgeStatus[relationsToAdd[i].index] = relationsToAdd[i].type;
-		}
-		if (Math.abs(circles[j].y - circles[modulo(j + 1, n)].y && edgeStatus[modulo(j + 1, n)] != relationsToAdd[i].type && 
-		    edgeStatus[modulo(j -1, n)] != relationsToAdd[i].type) <= eps ) {
-			
-			edgeStatus[relationsToAdd[i].index] = relationsToAdd[i].type;	
-		}
-	}
-	relationsToAdd = [];
+	
 	drawCanvas();
 	window.removeEventListener("mousemove", mouseMove2, false);
 }	

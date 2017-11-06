@@ -102,13 +102,10 @@
 			</div>		
 			<canvas id="cnv"></canvas>
 		</div>
-		<img id="wall" src="brick_heightmap.png" alt="The Scream" width="220" height="277">
-		
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 		<script src="drawLine.js"></script>
 		<script src="displacement.js"></script>
 		<script src="onClick.js"></script>
-		<script src="FillPolygon.js"></script>
 		
 		<script src="https://swisnl.github.io/jQuery-contextMenu/js/main.js" type="text/javascript"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
@@ -147,8 +144,7 @@
 			var	dragHoldX;
 			var	dragHoldY;
 			const pointRadius = 10;
-			var endDrowing = [];
-			endDrowing[0] = false;
+			var endDrowing = false;
 			var horizontal = 0;
 			var	vertical = 1;
 			var minimumDistance = 10;
@@ -160,8 +156,8 @@
 			
 			circles.push( [] );
 			circles.push( [] );
-
 			
+			console.log("mod " + modulo(0-1, 4));
 			$(canvas).on("click", canvasOnClick);
 			
 			$("#removePolygon").on("click", clearPolygon);
@@ -186,39 +182,32 @@
 			function drawPolygon() {
 				var n = circles[0].length;
 				var j = 0;
-				for(var j = 0; j <= polygonIndex; j++) {
-					for (var i = 0; i < circles[j].length - 1; i++) {
-						var red = false;
-						
-						drawLine(circles[j][i].x, circles[j][i].y, circles[j][i + 1].x, circles[j][i + 1].y, red);
-					}
-
-					if (endDrowing[j]) {
-						var red = false;
-						
-						MidpointLine(circles[j][0].x, circles[j][0].y, circles[j][n - 1].x, circles[j][n - 1].y, red);
-					}
+				var red = false;
+				
+				for (var i = 0; i < n - 1; i++) {
+					drawLine(circles[j][i].x, circles[j][i].y, circles[j][i + 1].x, circles[j][i + 1].y, red);
 				}
+
+				if (endDrowing) {					
+					MidpointLine(circles[0].x, circles[0].y, circles[n - 1].x, circles[n - 1].y, red);
+				}
+				
 				// new polygon
 				var n2 = secondCircles.length;
 				for (var i = 0; i < secondCircles.length; i++) {
 					drawLine(secondCircles[i].x, secondCircles[i].y, secondCircles[(i + 1) % n2].x, secondCircles[(i + 1) % n2].y, red);
 				}
-				
 			}
 
 			function drawCircles() {
 				var j = 0;
 				var i, len = circles[j].length;
-				for(var j = 0; j <= polygonIndex; j++) {
-					for (var i = 0; i < circles[j].length; i++) {
-						ctx.fillStyle = circles[j][i].color;
-						ctx.beginPath();
-						ctx.arc(circles[j][i].x, circles[j][i].y, circles[j][i].r, 0, 2 * Math.PI, false);
-						ctx.fill();
-					}				
-				}
-				
+				for (i = 0; i < len; i++) {
+					ctx.fillStyle = circles[j][i].color;
+					ctx.beginPath();
+					ctx.arc(circles[j][i].x, circles[j][i].y, circles[j][i].r, 0, 2 * Math.PI, false);
+					ctx.fill();
+				}				
 			}
 
 			function drawCanvas() {
@@ -226,9 +215,6 @@
 				ctx.fillRect(0, 0, cw, ch);				
 				drawPolygon();
 				drawCircles();
-				if (endDrowing[0]) {
-					FillPolygon(circles[0]);
-				}
 			}
 
 			function inCircle(circle, mx, my) {
@@ -348,50 +334,7 @@
 					}
 				}
 			};
-			
-			function Status(s) {
-				var i, n = circles.length;
-				for (i = 0; i < n ; i++) {
-					if (inEdge(circles[i].x, circles[i].y, circles[(i + 1) % n].x, circles[(i + 1) % n].y, mouseX, mouseY)) {						
-						if (s == horizontal && edgeStatus[(i + 1) % n] != horizontal && edgeStatus[modulo(i-1, n)] != horizontal) {
-							circles[(i + 1) % n].y = circles[i].y;
-							edgeStatus[i] = s;
-						} else if (s == vertical && edgeStatus[(i + 1) % n] != vertical && edgeStatus[modulo(i-1, n)] != vertical) {
-							circles[(i + 1) % n].x = circles[i].x;
-							edgeStatus[i] = s;
-						}  else if(s >= minimumDistance) {
-							edgeStatus[i] = s;
-							var sub = setDistance(circles[i].x, circles[i].y, circles[(i+1) %n].x, circles[(i + 1) % n].y, s);
-							circles[(i + 1) % n].x -= parseInt(sub.dx);
-							circles[(i + 1) % n].y -= parseInt(sub.dy);
-						}
-						break;
-					}
-				}
-				repairPolygon((i+1)%n);
-				repairPolygonReverse(modulo(i-1, n));
-				drawCanvas();
-			}
-			
-			function drawStatusImages(x, y, s) {
-				var img=new Image();
-				img.onload=function() {
-					ctx.drawImage(img,x,y,20,20);
-				}
-				if (s == horizontal) {
-					img.src="horizontal.png";
-				} else {
-					img.src="vertical.png";
-				}
-			}
-
-			function setDistance(x1, y1, x2, y2, d) {	
-				var dist = Math.sqrt((x1-x2) * (x1-x2) + (y1-y2) * (y1-y2));
-				var dx = (1-d/dist) * (x2 - x1);
-				var dy = (1-d/dist) * (y2 - y1);
-				return {dx:dx, dy:dy};
-			}
-			
+						
 			function clearPolygon()
 			{
 				circles = [];
@@ -402,23 +345,6 @@
 				$(canvas).on("click", canvasOnClick);
 			}
 			
-			function addVertex(i) {	
-				var n = circles.length;
-				var color = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
-				x = (circles[i].x + circles[(i + 1) % n].x) / 2;
-				y = (circles[i].y + circles[(i + 1) % n].y) / 2;
-				x = parseInt(x);
-				y = parseInt(y);
-				circles.splice(i + 1, 0, {
-					x: x,
-					y: y,
-					r: pointRadius,
-					color: color
-				});
-				repairPolygon((i+2)%n);
-				repairPolygonReverse(modulo(i, n));
-				drawCanvas();
-			}
 	</script>
 	</body>
 </html>
