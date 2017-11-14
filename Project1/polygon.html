@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="">
+<html lang="">	
 	<head>
+		<link rel='stylesheet' href='spectrum.css' />
 		<meta charset="utf-8">
 		<title>Draw polygon</title>
-
 		<style>
 			body {
 				margin: 0;
@@ -12,7 +12,7 @@
 				align-items: center;
 				justify-content: center;
 				height: 100vh;
-				background-color: darkgray;
+				background-color: lightgrey;
 				text-align: center;
 			}
 
@@ -79,7 +79,7 @@
 			}
 			
 			#panel {
-				height: 50px;
+				height: 150px;
 				width: 1000px;
 				border: 3px solid black;
 				align-content: center;
@@ -90,25 +90,56 @@
 				text-align: center;
 				margin: 200px 100px;
 			}
+			
+			#checkboxes {
+				display: inline-block;
+			}
+			#background {
+				display: inline-block;
+			}
+			#lightSource {
+				display: inline-block;
+			}
 		</style>
 	</head>
 	
 	<body>
 		<div id="wraper">
-			<div id="panel">			
+			<div id="panel">	
+				<div id="checkboxes">
+					<form id="background">
+					  <input id="color" type="radio" name="color" value="color" > Kolor<br>
+					  <input type="radio" name="color" value="texture" checked="true"> Tekstura<br>
+					</form>
+					<form id="lightSource">
+					  <input id="constVector" type="radio" name="color" value="color" checked="true">Stały [0, 0, 1]<br>
+					  <input id="sphere" type="radio" name="color" value="texture"> Sfera<br>
+					</form>
+				</div>
+				
 				<button id="endDrawing">End drawing</button>
 				<button id="removePolygon">Delete Polygon</button>	
+				<button id="clip">Clip</button>	
 				<input id="checkbox" type="checkbox" name="vehicle" value="false">New relation<br>
+				Light Color <input id="lightColor" class="jscolor" value="FFFFFF">
+				Fill Color <input id="fillColor" class="jscolor" value="FF0000">			
+				<img id="wall" src="brick_heightmap.png" alt="The Scream" width="50" height="50" >
+				<img id="normalMap" src="normal_map.png" width="50" height="50" >
 			</div>		
 			<canvas id="cnv"></canvas>
+			
 		</div>
-		<img id="wall" src="brick_heightmap.png" alt="The Scream" width="220" height="277">
+		
 		
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+		<script src="Clipping.js"></script>
 		<script src="drawLine.js"></script>
 		<script src="displacement.js"></script>
 		<script src="onClick.js"></script>
 		<script src="FillPolygon.js"></script>
+		<script src="Circle.js"></script>
+		
+		<script src="jscolor.js"></script>
 		
 		<script src="https://swisnl.github.io/jQuery-contextMenu/js/main.js" type="text/javascript"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
@@ -157,14 +188,19 @@
 			var color = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
 			var newRelation = false;
 			var polygonIndex = 0;
+			const midPoint = {x:cw/2, y:ch/2}; 
+			const circleRarius = 50;
+			var pointOnCircle = {x:midPoint.x, y:midPoint.y+circleRarius};
+			var alpha = 90;
 			
 			circles.push( [] );
 			circles.push( [] );
-
 			
 			$(canvas).on("click", canvasOnClick);
 			
 			$("#removePolygon").on("click", clearPolygon);
+			
+			$("#clip").on("click", clip);
 			
 			$("#endDrawing").on("click", function(e) {
 				$(canvas).prop('onclick', null).off('click');
@@ -183,6 +219,26 @@
 				}
 			});
 			
+			var interval;
+			$("#sphere").change(function() {
+				if(this.checked) {
+					interval = setInterval(function(){ 
+						var d = calculatePointOnCircle(alpha, 130);
+						pointOnCircle.x = midPoint.x + d.x;
+						pointOnCircle.y = midPoint.y + d.y;
+						alpha++;
+						drawCanvas();
+					}, 50);
+				}
+			});
+			$("#constVector").change(function() {
+				if(this.checked) {
+					clearInterval(interval);
+					drawCanvas();
+				}
+			});
+			
+			
 			function drawPolygon() {
 				var n = circles[0].length;
 				var j = 0;
@@ -192,18 +248,17 @@
 						
 						drawLine(circles[j][i].x, circles[j][i].y, circles[j][i + 1].x, circles[j][i + 1].y, red);
 					}
-
 					if (endDrowing[j]) {
 						var red = false;
 						
-						MidpointLine(circles[j][0].x, circles[j][0].y, circles[j][n - 1].x, circles[j][n - 1].y, red);
+						drawLine(circles[j][0].x, circles[j][0].y, circles[j][circles[j].length - 1].x, circles[j][circles[j].length - 1].y, red);
 					}
 				}
 				// new polygon
-				var n2 = secondCircles.length;
+				/*var n2 = secondCircles.length;
 				for (var i = 0; i < secondCircles.length; i++) {
 					drawLine(secondCircles[i].x, secondCircles[i].y, secondCircles[(i + 1) % n2].x, secondCircles[(i + 1) % n2].y, red);
-				}
+				}*/
 				
 			}
 
@@ -228,6 +283,9 @@
 				drawCircles();
 				if (endDrowing[0]) {
 					FillPolygon(circles[0]);
+				}
+				if (endDrowing[1]) {
+					FillPolygon(circles[1]);
 				}
 			}
 
@@ -334,57 +392,8 @@
 				}
 				// Hide it AFTER the action was triggered
 				$(".vertical-menu").hide(100);
-			});
+			});				
 				
-			// 
-			function deleteVertex(e) {
-				var i, len = circles.length;
-
-				for (i = 0; i < len; i++) {
-					if (inCircle(circles[i], mouseX, mouseY)) {
-						circles.splice(i, 1);
-						drawCanvas();
-						break;
-					}
-				}
-			};
-			
-			function Status(s) {
-				var i, n = circles.length;
-				for (i = 0; i < n ; i++) {
-					if (inEdge(circles[i].x, circles[i].y, circles[(i + 1) % n].x, circles[(i + 1) % n].y, mouseX, mouseY)) {						
-						if (s == horizontal && edgeStatus[(i + 1) % n] != horizontal && edgeStatus[modulo(i-1, n)] != horizontal) {
-							circles[(i + 1) % n].y = circles[i].y;
-							edgeStatus[i] = s;
-						} else if (s == vertical && edgeStatus[(i + 1) % n] != vertical && edgeStatus[modulo(i-1, n)] != vertical) {
-							circles[(i + 1) % n].x = circles[i].x;
-							edgeStatus[i] = s;
-						}  else if(s >= minimumDistance) {
-							edgeStatus[i] = s;
-							var sub = setDistance(circles[i].x, circles[i].y, circles[(i+1) %n].x, circles[(i + 1) % n].y, s);
-							circles[(i + 1) % n].x -= parseInt(sub.dx);
-							circles[(i + 1) % n].y -= parseInt(sub.dy);
-						}
-						break;
-					}
-				}
-				repairPolygon((i+1)%n);
-				repairPolygonReverse(modulo(i-1, n));
-				drawCanvas();
-			}
-			
-			function drawStatusImages(x, y, s) {
-				var img=new Image();
-				img.onload=function() {
-					ctx.drawImage(img,x,y,20,20);
-				}
-				if (s == horizontal) {
-					img.src="horizontal.png";
-				} else {
-					img.src="vertical.png";
-				}
-			}
-
 			function setDistance(x1, y1, x2, y2, d) {	
 				var dist = Math.sqrt((x1-x2) * (x1-x2) + (y1-y2) * (y1-y2));
 				var dx = (1-d/dist) * (x2 - x1);
@@ -400,25 +409,8 @@
 				endDrowing = false;
 				drawCanvas();
 				$(canvas).on("click", canvasOnClick);
-			}
+			}		
 			
-			function addVertex(i) {	
-				var n = circles.length;
-				var color = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
-				x = (circles[i].x + circles[(i + 1) % n].x) / 2;
-				y = (circles[i].y + circles[(i + 1) % n].y) / 2;
-				x = parseInt(x);
-				y = parseInt(y);
-				circles.splice(i + 1, 0, {
-					x: x,
-					y: y,
-					r: pointRadius,
-					color: color
-				});
-				repairPolygon((i+2)%n);
-				repairPolygonReverse(modulo(i, n));
-				drawCanvas();
-			}
 	</script>
 	</body>
 </html>

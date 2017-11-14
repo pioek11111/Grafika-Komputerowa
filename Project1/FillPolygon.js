@@ -17,13 +17,24 @@ function FillPolygon(polygon) {
 	var ETCount = n;
 	
 	var canvas2 = document.createElement('canvas');
+	canvas2.height = 1000;
+	canvas2.width = 1000;
 	var context = canvas2.getContext('2d');
-	var img = document.getElementById('wall');
-	canvas2.width = img.width;
-	canvas2.height = img.height;
+	var i = document.getElementById('wall');
+	var img = new Image();
+	img.src = i.src;
 	context.drawImage(img, 0, 0 );
 	var myData = context.getImageData(0, 0, img.width, img.height);
-	console.log(myData);
+	
+	var canvas3 = document.createElement('canvas');
+	canvas3.height = 1000;
+	canvas3.width = 1000;
+	var context3 = canvas3.getContext('2d');
+	var normalMapImg = document.getElementById('normalMap');
+	var img2 = new Image();
+	img2.src = normalMapImg.src;
+	context3.drawImage(img2, 0, 0 );
+	var normalMapData = context3.getImageData(0, 0, img2.width, img2.height);
 	
 	for(var i = 0; i < n; i++) {
 		if(ET[Math.min(polygon[i].y, polygon[(i+1)%n].y)] == undefined) {
@@ -48,13 +59,32 @@ function FillPolygon(polygon) {
 		}
 		// posortuj listę AET wg x
 		AET.sort(function(a, b){return a.xMin-b.xMin});
+		
+		var backgroundColor = [255, 0, 0];
+		
+		var lightColor = "#" + $("#lightColor").val();
+		var fillColor = "#" + $("#fillColor").val();
+		var lightColor = parseColor(lightColor);
+		var fillColor = parseColor(fillColor);
+		if($('#color').is(':checked')) { 			
+			newColor = [lightColor[0] * fillColor[0] / (255), lightColor[1] * fillColor[1] / (255), lightColor[2] * fillColor[2] / (255)];
+		}
 		//wypełnij piksele pomiędzy parami przecięć
 		for(var i = 0; i < AET.length; i+=2) {
 			if (AET[i].xMin != AET[i+1].xMin) {
-				drawHorizontalLine2(AET[i].xMin, AET[i+1].xMin, y, myData, AET[i].xMin % img.width, y % img.height, img.width, img.height);
-				/*for(var j = AET[i].xMin; j <= AET[i+1].xMin; j++) {
-					setPixel(j, y, true);
-				}*/
+				if($('#color').is(':checked')) { // kolor
+					if($('#sphere').is(':checked')) {
+						drawHorizontalLineSphere(AET[i].xMin, AET[i+1].xMin, y, fillColor, lightColor, pointOnCircle);
+					} else {
+						drawHorizontalLine(AET[i].xMin, AET[i+1].xMin, y, lightColor, fillColor, normalMapData, AET[i].xMin % img2.width, y % img2.height, img2.width, img2.height); 
+					}
+				} else { // tekstura
+					if($('#sphere').is(':checked')) {
+						drawHorizontalLine2Sphere(AET[i].xMin, AET[i+1].xMin, y, myData, AET[i].xMin % img.width, y % img.height, img.width, img.height, lightColor, pointOnCircle);
+					} else {
+						drawHorizontalLine2(AET[i].xMin, AET[i+1].xMin, y, myData, AET[i].xMin % img.width, y % img.height, img.width, img.height, normalMapData, AET[i].xMin % img2.width, y % img2.height, img2.width, img2.height);
+					}
+				}
 			}
 		}
 		// usuń z AET te elementy, dla których y=ymax
@@ -79,35 +109,105 @@ function A(x1, x2, y1, y2) {
 	return (y1 - y2) / (x1 - x2);
 }
 
-function drawHorizontalLine(x1, x2, y) {
-	ctx.fillStyle = '#ff0000';
-	var id = ctx.createImageData(x2-x1+1, 1); // only do this once per page
-	var d  = id.data;                     // only do this once per page
-	d[0]   = 125;
-	d[1]   = 125;
-	d[2]   = 125;
-	d[3]   = 125;
-	ctx.putImageData(id, x1, y);
-	ctx.fillRect(x1, y, x2-x1+1, 1);
-}
-
-function drawHorizontalLine2(x1, x2, y, imageData, xBitmap, yBitmap, w, h) {
-	//ctx.fillStyle = '#ff0000';
+function drawHorizontalLine(x1, x2, y, lightColor, color, normalMapData, xNoMap, yNoMap, wNoMap, hNoMap, useNormalMap = false) {
 	var imgData = ctx.createImageData(x2-x1+1, 1); // only do this once per page
-	var position = parseInt(( xBitmap + w * yBitmap ) * 4);
-	debugger
+	
+	var normalMPosition = parseInt(( parseInt(xNoMap) + wNoMap * yNoMap ) * 4);
+	var nMapEndPosition = normalMPosition + wNoMap * 4;
+	var nMapStartPosition = normalMPosition;
+	
 	for (var i=0;i<imgData.data.length;i+=4)
 	{
-		position += 4;
-		var a = imageData.data[position];
-		imgData.data[i+0]=imageData.data[position];
-		imgData.data[i+1]=imageData.data[position+1];
-		imgData.data[i+2]=imageData.data[position+2];
-		imgData.data[i+3]=imageData.data[position+3];
+		normalMPosition +=4;
+		var n1 = normalMapData.data[(normalMPosition)];
+		var n2 = normalMapData.data[(normalMPosition+1)];
+		var n3 = normalMapData.data[(normalMPosition+2)];
+		
+		var newColor = calcColor([n1,n2,n3],color, lightColor, {x:x1+i/4, y: y}, spherePoint)
+		imgData.data[i+0] = newColor[0];
+		imgData.data[i+1] = newColor[1];
+		imgData.data[i+2] = newColor[2];
+		imgData.data[i+3] = 255;
+		if (position >= endPosition)
+			position = startPosition;
 	}
 	
 	ctx.putImageData(imgData, x1, y);
-	//ctx.fillRect(x1, y, x2-x1+1, 1);
+}
+
+function drawHorizontalLineSphere(x1, x2, y, color, lightColor, spherePoint) {
+	var imgData = ctx.createImageData(x2-x1+1, 1); // only do this once per page
+	
+	for (var i=0;i<imgData.data.length;i+=4)
+	{
+		var newColor = calcColor([0,0,1],color, lightColor, {x:x1+i/4, y: y}, spherePoint)
+		imgData.data[i+0] = newColor[0];
+		imgData.data[i+1] = newColor[1];
+		imgData.data[i+2] = newColor[2];
+		imgData.data[i+3] = 255;
+	}
+	
+	ctx.putImageData(imgData, x1, y);
+}
+
+function drawHorizontalLine2(x1, x2, y, imageData, xBitmap, yBitmap, w, h, normalMapData, xNoMap, yNoMap, wNoMap, hNoMap) { // tekstura
+	var imgData = ctx.createImageData(x2-x1+1, 1); // only do this once per page
+	var position = parseInt(( parseInt(xBitmap) + w * yBitmap ) * 4);
+	var normalMPosition = parseInt(( parseInt(xNoMap) + wNoMap * yNoMap ) * 4);
+	
+	var endPosition = position + w*4;
+	var nMapEndPosition = normalMPosition + wNoMap * 4;
+	
+	var startPosition = position;
+	var nMapStartPosition = normalMPosition;
+	
+	for (var i=0;i<imgData.data.length;i+=4)
+	{
+		position += 4;
+		normalMPosition +=4;
+		var a = imageData.data[(position)];
+		var b = imageData.data[(position+1)];
+		var c = imageData.data[(position+2)];
+		
+		var n1 = normalMapData.data[(normalMPosition)];
+		var n2 = normalMapData.data[(normalMPosition+1)];
+		var n3 = normalMapData.data[(normalMPosition+2)];
+		
+		var newColor = calcColor([n1,n2,n3],[a, b, c], lightColor, {x:x1+i/4, y: y}, spherePoint)
+		imgData.data[i+0] = newColor[0];
+		imgData.data[i+1] = newColor[1];
+		imgData.data[i+2] = newColor[2];
+		imgData.data[i+3]=255;
+		if (position >= endPosition)
+			position = startPosition;
+	}
+	
+	ctx.putImageData(imgData, x1, y);
+}
+
+function drawHorizontalLine2Sphere(x1, x2, y, imageData, xBitmap, yBitmap, w, h, lightColor,  spherePoint) {
+	//ctx.fillStyle = '#ff0000';
+	var imgData = ctx.createImageData(x2-x1+1, 1); // only do this once per page
+	var position = parseInt(( parseInt(xBitmap) + w * yBitmap ) * 4);
+	var endPosition = position + w*4;
+	var startPosition = position;
+	for (var i=0;i<imgData.data.length;i+=4)
+	{
+		position += 4;		
+		var a = imageData.data[(position)];
+		var b = imageData.data[(position+1)];
+		var c = imageData.data[(position+2)];
+		var d = imageData.data[position+3];
+		var newColor = calcColor([0,0,1],[a, b, c], lightColor, {x:x1+i/4, y: y}, spherePoint)
+		imgData.data[i+0] = newColor[0];
+		imgData.data[i+1] = newColor[1];
+		imgData.data[i+2] = newColor[2];
+		imgData.data[i+3] = 255;
+		if (position >= endPosition)
+			position = startPosition;
+	}
+	
+	ctx.putImageData(imgData, x1, y);
 }
 
 function setPixel(x, y, red) {
@@ -127,8 +227,38 @@ function setPixel(x, y, red) {
 }
 
 function getPixel( imagedata, x, y ) {
-
     var position = ( x + imagedata.width * y ) * 4, data = imagedata.data;
     return { r: data[ position ], g: data[ position + 1 ], b: data[ position + 2 ], a: data[ position + 3 ] };
 
+}
+
+function parseColor(input) {
+    if (input.substr(0,1)=="#") {
+	var collen=(input.length-1)/3;
+	var fact=[17,1,0.062272][collen-1];
+	return [
+	    Math.round(parseInt(input.substr(1,collen),16)*fact),
+	    Math.round(parseInt(input.substr(1+collen,collen),16)*fact),
+	    Math.round(parseInt(input.substr(1+2*collen,collen),16)*fact)
+	];
+    }
+    else return input.split("(")[1].split(")")[0].split(",").map(Math.round);
+}
+
+function cosinusNL(Nx, Ny, Nz, Lx, Ly, Lz) {
+	return Nx*Lx+Ny*Ly+Nz*Lz
+}
+
+function normalize(x, y, z) {
+	var d = Math.sqrt(x*x + y*y + z*z);
+	return [x/d, y/d, z/d];
+}
+
+function calcColor(N, color, lightColor, point, spherePoint) {
+	var h = 20;
+	var L = [spherePoint.x - point.x, spherePoint.y - point.y, h];
+	L = normalize(L[0], L[1], L[2]);
+	N = normalize(N[0], N[1], N[2]);
+	var cos = cosinusNL(N[0], N[1] , N[2], L[0], L[1], L[2]);
+	return [cos * lightColor[0] * color[0] / (255),cos * lightColor[1] * color[1] / (255),cos * lightColor[2] * color[2] / (255)];
 }

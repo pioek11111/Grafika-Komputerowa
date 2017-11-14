@@ -15,15 +15,13 @@ function canvasOnClick(e) {
 		FillPolygon(circles[0]);
 		return;
 	}
-	
-	
-		circles[polygonIndex].push({
-			x: x,
-			y: y,
-			r: pointRadius,
-			color: color
-		});
-	
 		
+	circles[polygonIndex].push({
+		x: x,
+		y: y,
+		r: pointRadius,
+		color: color
+	});
+			
 	drawCanvas();
 }
