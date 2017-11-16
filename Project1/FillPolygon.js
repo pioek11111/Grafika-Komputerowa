@@ -73,17 +73,34 @@ function FillPolygon(polygon) {
 		for(var i = 0; i < AET.length; i+=2) {
 			if (AET[i].xMin != AET[i+1].xMin) {
 				if($('#color').is(':checked')) { // kolor
-					if($('#sphere').is(':checked')) {
-						drawHorizontalLineSphere(AET[i].xMin, AET[i+1].xMin, y, fillColor, lightColor, pointOnCircle);
-					} else {
-						drawHorizontalLine(AET[i].xMin, AET[i+1].xMin, y, lightColor, fillColor, normalMapData, AET[i].xMin % img2.width, y % img2.height, img2.width, img2.height); 
-					}
+					if($('#normalVectorConst').is(':checked')) { // stały wektor normalny
+						if($('#sphere').is(':checked')) { // światło na sferze
+							drawHorizontalLineSphere(AET[i].xMin, AET[i+1].xMin, y, fillColor, lightColor, pointOnCircle);
+							//drawHorizontalLine(AET[i].xMin, AET[i+1].xMin, y, lightColor, fillColor, normalMapData, AET[i].xMin % img2.width, y % img2.height, img2.width, img2.height, pointOnCircle, true); 
+						} else { // światło stałe
+							drawHorizontalLine(AET[i].xMin, AET[i+1].xMin, y, lightColor, fillColor, normalMapData, AET[i].xMin % img2.width, y % img2.height, img2.width, img2.height, false, true); 
+						}
+					} else { // mapa wektorów normalnych
+						if($('#sphere').is(':checked')) { // światło na sferze
+							drawHorizontalLine(AET[i].xMin, AET[i+1].xMin, y, lightColor, fillColor, normalMapData, AET[i].xMin % img2.width, y % img2.height, img2.width, img2.height, pointOnCircle, true); 
+						} else { // światło stałe
+							drawHorizontalLine(AET[i].xMin, AET[i+1].xMin, y, lightColor, fillColor, normalMapData, AET[i].xMin % img2.width, y % img2.height, img2.width, img2.height, false, true); 
+						}
+					}					
 				} else { // tekstura
-					if($('#sphere').is(':checked')) {
-						drawHorizontalLine2Sphere(AET[i].xMin, AET[i+1].xMin, y, myData, AET[i].xMin % img.width, y % img.height, img.width, img.height, lightColor, pointOnCircle);
-					} else {
-						drawHorizontalLine2(AET[i].xMin, AET[i+1].xMin, y, myData, AET[i].xMin % img.width, y % img.height, img.width, img.height, normalMapData, AET[i].xMin % img2.width, y % img2.height, img2.width, img2.height);
-					}
+					if($('#normalVectorConst').is(':checked')) { // stały wektor normalny
+						if($('#sphere').is(':checked')) { // światło na sferze
+							drawHorizontalLine2Sphere(AET[i].xMin, AET[i+1].xMin, y, myData, AET[i].xMin % img.width, y % img.height, img.width, img.height, lightColor, pointOnCircle);
+						} else { // światło stałe
+							drawHorizontalLine2(AET[i].xMin, AET[i+1].xMin, y, myData, AET[i].xMin % img.width, y % img.height, img.width, img.height, lightColor, false, normalMapData, AET[i].xMin % img2.width, y % img2.height, img2.width, img2.height);
+						}
+					} else { // mapa wektorów normalnych
+						if($('#sphere').is(':checked')) { // światło na sferze
+							drawHorizontalLine2(AET[i].xMin, AET[i+1].xMin, y, myData, AET[i].xMin % img.width, y % img.height, img.width, img.height, lightColor, pointOnCircle, normalMapData, AET[i].xMin % img2.width, y % img2.height, img2.width, img2.height);
+						} else { // światło stałe
+							drawHorizontalLine2(AET[i].xMin, AET[i+1].xMin, y, myData, AET[i].xMin % img.width, y % img.height, img.width, img.height, lightColor, false, normalMapData, AET[i].xMin % img2.width, y % img2.height, img2.width, img2.height);
+						}
+					}				
 				}
 			}
 		}
@@ -109,7 +126,7 @@ function A(x1, x2, y1, y2) {
 	return (y1 - y2) / (x1 - x2);
 }
 
-function drawHorizontalLine(x1, x2, y, lightColor, color, normalMapData, xNoMap, yNoMap, wNoMap, hNoMap, useNormalMap = false) {
+function drawHorizontalLine(x1, x2, y, lightColor, color, normalMapData, xNoMap, yNoMap, wNoMap, hNoMap, spherePoint, useNormalMap = false) {
 	var imgData = ctx.createImageData(x2-x1+1, 1); // only do this once per page
 	
 	var normalMPosition = parseInt(( parseInt(xNoMap) + wNoMap * yNoMap ) * 4);
@@ -122,14 +139,14 @@ function drawHorizontalLine(x1, x2, y, lightColor, color, normalMapData, xNoMap,
 		var n1 = normalMapData.data[(normalMPosition)];
 		var n2 = normalMapData.data[(normalMPosition+1)];
 		var n3 = normalMapData.data[(normalMPosition+2)];
-		
+
 		var newColor = calcColor([n1,n2,n3],color, lightColor, {x:x1+i/4, y: y}, spherePoint)
 		imgData.data[i+0] = newColor[0];
 		imgData.data[i+1] = newColor[1];
 		imgData.data[i+2] = newColor[2];
 		imgData.data[i+3] = 255;
-		if (position >= endPosition)
-			position = startPosition;
+		if (normalMPosition >= nMapEndPosition)
+			normalMPosition = nMapStartPosition;
 	}
 	
 	ctx.putImageData(imgData, x1, y);
@@ -137,7 +154,6 @@ function drawHorizontalLine(x1, x2, y, lightColor, color, normalMapData, xNoMap,
 
 function drawHorizontalLineSphere(x1, x2, y, color, lightColor, spherePoint) {
 	var imgData = ctx.createImageData(x2-x1+1, 1); // only do this once per page
-	
 	for (var i=0;i<imgData.data.length;i+=4)
 	{
 		var newColor = calcColor([0,0,1],color, lightColor, {x:x1+i/4, y: y}, spherePoint)
@@ -150,7 +166,7 @@ function drawHorizontalLineSphere(x1, x2, y, color, lightColor, spherePoint) {
 	ctx.putImageData(imgData, x1, y);
 }
 
-function drawHorizontalLine2(x1, x2, y, imageData, xBitmap, yBitmap, w, h, normalMapData, xNoMap, yNoMap, wNoMap, hNoMap) { // tekstura
+function drawHorizontalLine2(x1, x2, y, imageData, xBitmap, yBitmap, w, h, lightColor, spherePoint, normalMapData, xNoMap, yNoMap, wNoMap, hNoMap) { // tekstura
 	var imgData = ctx.createImageData(x2-x1+1, 1); // only do this once per page
 	var position = parseInt(( parseInt(xBitmap) + w * yBitmap ) * 4);
 	var normalMPosition = parseInt(( parseInt(xNoMap) + wNoMap * yNoMap ) * 4);
@@ -160,7 +176,6 @@ function drawHorizontalLine2(x1, x2, y, imageData, xBitmap, yBitmap, w, h, norma
 	
 	var startPosition = position;
 	var nMapStartPosition = normalMPosition;
-	
 	for (var i=0;i<imgData.data.length;i+=4)
 	{
 		position += 4;
@@ -172,7 +187,6 @@ function drawHorizontalLine2(x1, x2, y, imageData, xBitmap, yBitmap, w, h, norma
 		var n1 = normalMapData.data[(normalMPosition)];
 		var n2 = normalMapData.data[(normalMPosition+1)];
 		var n3 = normalMapData.data[(normalMPosition+2)];
-		
 		var newColor = calcColor([n1,n2,n3],[a, b, c], lightColor, {x:x1+i/4, y: y}, spherePoint)
 		imgData.data[i+0] = newColor[0];
 		imgData.data[i+1] = newColor[1];
@@ -255,10 +269,15 @@ function normalize(x, y, z) {
 }
 
 function calcColor(N, color, lightColor, point, spherePoint) {
-	var h = 20;
+	var h = 50;
 	var L = [spherePoint.x - point.x, spherePoint.y - point.y, h];
 	L = normalize(L[0], L[1], L[2]);
+	/*N[0] = (N[0] - 127) / 127;
+	N[1] = (N[1] - 127) / 127;*/
 	N = normalize(N[0], N[1], N[2]);
-	var cos = cosinusNL(N[0], N[1] , N[2], L[0], L[1], L[2]);
+	var cos = 1;
+	if (spherePoint != false) {
+		cos = cosinusNL(N[0], N[1] , N[2], L[0], L[1], L[2]);
+	}
 	return [cos * lightColor[0] * color[0] / (255),cos * lightColor[1] * color[1] / (255),cos * lightColor[2] * color[2] / (255)];
 }

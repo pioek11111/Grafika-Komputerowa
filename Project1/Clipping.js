@@ -4,6 +4,11 @@ function clip() {
 	var crossPoints1 = [];
 	var crossPoints2 = [];
 	var edges = []
+	if (polygon1[0] > polygon1[1])
+		polygon1.reverse();
+	
+	if (polygon2[0] > polygon2[1])
+		polygon2.reverse();
 	
 	for(var i = 0; i < polygon1.length; i++) {
 		crossPoints1[i] = [];
@@ -66,12 +71,13 @@ function clip() {
 	polygons.push(polygon1);
 	polygons.push(polygon2);
 	var idx = startIdx;
+
 	while(true) {
 		newPolygon.push(polygons[currPolygon][idx]);
-		if (polygons[currPolygon][idx].e1 != undefined) { // punkt przecięcia
+		if (polygons[currPolygon][idx].e1 != undefined) { // punkt przecięcia			
+			idx = currPolygon == 0 ? edges[polygons[currPolygon][idx].e1][polygons[currPolygon][idx].e2].idx2 :
+				  edges[polygons[currPolygon][idx].e1][polygons[currPolygon][idx].e2].idx1;
 			currPolygon = currPolygon == 0 ? 1 : 0;
-			idx = currPolygon == 0 ? edges[polygons[currPolygon][idx].e1][polygons[currPolygon][idx].e2].idx1 :
-				  edges[polygons[currPolygon][idx].e1][polygons[currPolygon][idx].e2].idx2;
 		} else {
 			
 		}
@@ -80,7 +86,16 @@ function clip() {
 			break;
 		}
 	}
-	debugger;
+	var color = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+	var polygonToReturn = [];
+	for(var i = 0; i < newPolygon.length; i++) {
+		if (newPolygon[i].point != undefined) {
+			polygonToReturn.push({x:parseInt(newPolygon[i].point.x), y:parseInt(newPolygon[i].point.y), r:10, color:color})
+		} else {
+			polygonToReturn.push(newPolygon[i]);
+		}
+	}
+	return polygonToReturn;
 }
 
 function crossPoint(A, B, C, D) {
